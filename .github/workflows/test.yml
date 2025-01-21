@@ -47,11 +47,38 @@ jobs:
     needs: check-upstream-src-changes
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Check and create gh-pages branch if needed
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          if ! git show-ref --verify --quiet refs/heads/gh-pages; then
+            echo "Branch gh-pages does not exist. Creating it."
+            git checkout --orphan gh-pages
+            git rm -rf .
+            touch .nojekyll
+            git add .nojekyll
+            git commit -m "Initialize gh-pages branch"
+            git push origin gh-pages
+          else
+            echo "Branch gh-pages already exists."
+          fi
+
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./src
+        run: |
+          git checkout gh-pages
+          git rm -rf .
+          cp -r ./dist/* ./
+
+          git add .
+          git commit -m "Deploy: $(date -u +"%Y-%m-%d %H:%M:%S")"
+          git push --force origin gh-pages
+
+#      - name: Deploy to GitHub Pages
+#        uses: peaceiris/actions-gh-pages@v3
+#        with:
+#          github_token: ${{ secrets.GITHUB_TOKEN }}
+#          publish_dir: ./src
